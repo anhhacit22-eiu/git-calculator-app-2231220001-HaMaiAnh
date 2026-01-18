@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build, Test, and Release
 
 on:
   push:
@@ -7,22 +7,48 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # Job 1: Chạy Test trước
   test:
-    runs-on: ubuntu-latest  # Chạy trên máy ảo Linux Ubuntu
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4  # Lấy code về
-
+        uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'  # Cài đặt Node.js version 20
-
+          node-version: '20'
       - name: Install dependencies
-        run: npm install  # Cài đặt thư viện
-
+        run: npm install
       - name: Lint
-        run: npm run lint  # Kiểm tra lỗi cú pháp (Lint)
-
+        run: npm run lint
       - name: Run unit tests
-        run: npm test  # Chạy test tự động
+        run: npm test
+
+  # Job 2: Build app cho 3 hệ điều hành
+  build:
+    needs: test # Quan trọng: Chỉ chạy Build sau khi Test thành công
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest] # Chạy song song 3 OS
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      
+      # Lệnh build ứng dụng
+      - name: Build application
+        run: npm run build
+      
+      # Upload file kết quả (Artifacts) lên GitHub để tải về
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: calculator-${{ matrix.os }} # Đặt tên file theo tên OS
+          path: dist/ # Thư mục chứa file sau khi build xong
